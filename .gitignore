@@ -2,6 +2,8 @@ esc50.csv
 
 .venv
 
+node_modules
+
 temp
 
 audio
