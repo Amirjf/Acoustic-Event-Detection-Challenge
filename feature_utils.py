@@ -1,3 +1,4 @@
+from model_utils import save_model
 import numpy as np
 import pandas as pd
 import librosa
@@ -51,6 +52,13 @@ def extract_spectral_contrast(sound_data, sample_rate, n_fft=2048, hop_length=51
     contrast_std = np.std(contrast, axis=1)  # Compute standard deviation for each band
     return np.concatenate([contrast_mean, contrast_std])  # Return concatenated mean & std values
 
+def extract_spectral_contrast(sound_data, sample_rate, n_fft=2048, hop_length=512,n_bands=7,fmin= None):
+    """ Extracts the spectral contrast feature (Mean & Std for each band) """
+    sound_data_float = sound_data.astype(np.float32)
+    contrast = librosa.feature.spectral_contrast(y=sound_data_float, sr=sample_rate, n_fft=n_fft, hop_length=hop_length,n_bands=n_bands,fmin=fmin)
+    contrast_mean = np.mean(contrast, axis=1)
+    contrast_std = np.std(contrast, axis=1)
+    return np.concatenate([contrast_mean, contrast_std])
             
 # Function to extract pitch features (Mean & Std)
 def extract_pitch(sound_data, sample_rate, n_fft=2048, hop_length=512):
@@ -160,6 +168,7 @@ def compute_features_for_wave_list(wave_list_data):
     zcr_list = []
     envelope_list = []
     hnr_list = []
+
 
     for category, filename, sample_rate, sound_data in wave_list_data:
         # Extract class number from filename (assumed format: classID-.wav)
@@ -311,6 +320,7 @@ def preprocess_features(X_train, X_test, normalize=True, apply_pca=False, n_pca_
         scaler = StandardScaler()
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
+        save_model(scaler, "scaler")
         if verbose:
             print("✅ Normalization applied.")
     else:
