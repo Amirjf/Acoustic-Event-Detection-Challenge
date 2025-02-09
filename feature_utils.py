@@ -155,9 +155,39 @@ def compute_harmonic_to_noise_ratio(sound_data, sample_rate, n_fft=2048, hop_len
     
     return np.array([hnr])
 
+# Function to compute various audio features for a single wave file
+def compute_features_for_wave(sound_data, sample_rate):
+    # Step 1: Extract MFCCs and delta MFCCs
+    mfcc_matrix = librosa.feature.mfcc(y=sound_data, sr=sample_rate, n_mfcc=13)
+    delta_mfcc = librosa.feature.delta(mfcc_matrix)
+
+    # Compute mean and std of MFCCs and delta MFCCs
+    mfcc_mean = np.mean(mfcc_matrix, axis=1)
+    delta_mfcc_mean = np.mean(delta_mfcc, axis=1)
+
+    # Step 2: Extract histogram features
+    hist_features = extract_binned_spectrogram_hist(sound_data, sample_rate)
+
+    # Step 3: Extract spectral features using defined functions
+    spectral_centroid = extract_spectral_centroid(sound_data, sample_rate)  # Shape: (2,)
+    spectral_contrast = extract_spectral_contrast(sound_data, sample_rate, n_bands=7)  # Shape: (2 * n_bands,)
+    pitch_features = extract_pitch(sound_data, sample_rate)  # Shape: (2,)
+
+    # Step 4: Zero-Crossing Rate (ZCR)
+    zcr_features = extract_zcr(sound_data, sample_rate)
+
+    # Step 5: Amplitude Envelope (Energy Features)
+    envelope_features = extract_amplitude_envelope_features(sound_data, sample_rate)
+
+    # Step 6: Harmonic-to-Noise Ratio (HNR)
+    hnr_features = compute_harmonic_to_noise_ratio(sound_data, sample_rate)
+
+    return mfcc_mean, delta_mfcc_mean, hist_features, spectral_centroid, spectral_contrast, pitch_features, zcr_features, envelope_features, hnr_features
+
+
+
 # Function to compute various audio features for a list of wave files
 def compute_features_for_wave_list(wave_list_data):
-
     keys_list = []
     mfcc_list = []
     delta_mfcc_list = []

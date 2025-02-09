@@ -147,3 +147,7 @@ def predict_audio(model_name: str, file: UploadFile = File(...)):
 def get_models():
     models = [f.stem for f in MODEL_DIR.glob("*.joblib")]
     return models
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=3000)
