@@ -236,7 +236,6 @@ def save_features_to_npz(keys_list, feature_list, out_file="features.npz"):
     feature_array = np.vstack(feature_list)  # Stack feature vectors into a 2D array
     np.savez(out_file, keys=keys_list, features=feature_array)  # Save as NPZ file
     
-    print(f"Features saved to {out_file}")
 
 
 # Function to save multiple extracted features to an NPZ file
@@ -257,7 +256,6 @@ def save_multiple_features_to_npz(keys_list, mfcc_list, delta_mfcc_list, hist_li
              envelope=np.vstack(envelope_list), 
              hnr=np.vstack(hnr_list))
     
-    print(f"Multiple features saved to {out_file}")
 
 # Function to combine selected features based on feature flags
 def combine_features_with_flags(loaded_data, feature_flags):
@@ -289,8 +287,7 @@ def combine_features_with_flags(loaded_data, feature_flags):
             assert feature_array.shape[0] == reference_rows, f"Feature {feature} has a mismatched number of rows."
             
             feature_arrays.append(feature_array)
-        elif include:
-            print(f"Warning: {feature} is not available in the loaded data.")
+        
 
     # Raise an error if no features are selected
     if not feature_arrays:
@@ -298,7 +295,7 @@ def combine_features_with_flags(loaded_data, feature_flags):
 
     # Horizontally stack selected feature arrays
     combined_features = np.hstack(feature_arrays)
-    print("Combined feature shape:", combined_features.shape)
+    
     
     return combined_features
 
@@ -321,15 +318,6 @@ def load_and_split_features(loaded_data, feature_selection, test_size=0.2, rando
     combined_features = combine_features_with_flags(loaded_data, feature_selection)
     selected_features_names = [feature for feature, include in feature_selection.items() if include]
 
-    # Display the shapes of each feature type
-    print("Feature shapes and selection status:")
-    for feature, include in feature_selection.items():
-        shape = loaded_data[feature].shape
-        status = "✅" if include else "❌"
-        print(f"{feature.capitalize()} shape: {shape} - Status: {status}")
-    
-    print("\nCombined features shape:", combined_features.shape)
-    
     # Extract labels
     y = np.array(loaded_data['keys'])
 
@@ -350,12 +338,7 @@ def preprocess_features(X_train, X_test, normalize=True, apply_pca=False, n_pca_
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
         save_model(scaler, "scaler")
-        if verbose:
-            print("✅ Normalization applied.")
-    else:
-        if verbose:
-            print("❌ Normalization skipped.")
-
+        
     # Step 2: Apply PCA (if enabled)
     if apply_pca:
         pca = PCA(n_components=n_pca_components)
@@ -366,12 +349,6 @@ def preprocess_features(X_train, X_test, normalize=True, apply_pca=False, n_pca_
         n_components_selected = pca.n_components_
         explained_variance = np.sum(pca.explained_variance_ratio_)
         
-        if verbose:
-            print(f"✅ PCA applied. Selected {n_components_selected} components (explained variance: {explained_variance:.2f}).")
-            print(f"Reduced feature shape after PCA: {X_train.shape[1]}")
-    else:
-        if verbose:
-            print("❌ PCA skipped.")
 
     return X_train, X_test
 
@@ -393,13 +370,12 @@ def grid_search_hyperparameter_tuning(model, param_grid, X_train, y_train,
         best_params = grid_search.best_params_ if grid_search.best_params_ else None
         best_score = grid_search.best_score_ if grid_search.best_score_ else 0.0
 
-        print("\nBest Parameters:", best_params)
-        print(f"Best {scoring} Score: {best_score:.4f}")
+        
 
         return grid_search, best_params, best_score
 
     except Exception as e:
-        print(f"Grid search failed with error: {str(e)}")
+        
         return None, None, None
 
 # Function to perform K-Fold Cross-Validation with optional preprocessing and evaluation metrics
@@ -418,11 +394,7 @@ def kfold_cross_validation(
     display_classification_report=True
 ):
 
-    print(f"\nSettings:")
-    print(f" - Selected Features: {', '.join(selected_features_names)}")
-    print(f" - Model: {model.__class__.__name__}")
-    print(f" - Model Parameters: {model_params}")
-    print(f" - Preprocessing: {preprocess_params}\n")
+    
 
     kfold = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
     train_accuracies, test_accuracies, auc_scores = [], [], [] if hasattr(model, "predict_proba") else None
@@ -464,12 +436,7 @@ def kfold_cross_validation(
 
         conf_matrices.append(confusion_matrix(y_test, y_test_pred))
 
-        # Print iteration details
-        if display_iteration_details:
-            print(f"\n[Fold {fold + 1}]")
-            print(f"   - Train Accuracy: {train_accuracy:.4f}, Test Accuracy: {test_accuracy:.4f}")
-            if auc is not None:
-                print(f"   - AUC: {auc:.4f}")
+        
 
     # Compute average scores
     avg_train_accuracy = np.mean(train_accuracies)
@@ -480,12 +447,7 @@ def kfold_cross_validation(
     overfitting_gap = avg_train_accuracy - avg_test_accuracy
     overfitting_status = "⚠️ Overfitting Risk" if avg_train_accuracy == 1.0 or overfitting_gap > overfit_threshold else "✅ No Overfitting"
 
-    print(f"\nK-Fold Summary:")
-    print(f" - Average Train Accuracy: {avg_train_accuracy:.4f}")
-    print(f" - Average Test Accuracy: {avg_test_accuracy:.4f}")
-    if avg_auc is not None:
-        print(f" - Average AUC: {avg_auc:.4f}")
-    print(f" - Overfitting Status: {overfitting_status} (Train-Test Gap: {overfitting_gap:.4f})")
+    
 
     # --- Boxplot Visualization ---
     if plot_boxplots:
@@ -506,7 +468,7 @@ def kfold_cross_validation(
 
     # --- Confusion Matrix Visualization ---
     if plot_confusion_matrix:
-        print("\nConfusion Matrix (Last Fold):")
+        
         plt.figure(figsize=(14, 6))
         sns.heatmap(conf_matrices[-1], annot=True, fmt='d', cmap='Blues', 
                     xticklabels=np.unique(labels), yticklabels=np.unique(labels))
@@ -517,7 +479,7 @@ def kfold_cross_validation(
 
     # --- Classification Report ---
     if display_classification_report:
-        print("\nClassification Report (Last Fold):")
+        
         print(classification_report(y_test, y_test_pred))
 
     return {
@@ -553,7 +515,7 @@ def test_feature_combinations(
     all_combinations = [comb for i in range(1, len(combinations_dict) + 1) 
                         for comb in itertools.combinations(combinations_dict.keys(), i)]
 
-    print(f"\n🔍 Testing {len(all_combinations)} feature combinations for {model_name}...\n")
+    
 
     for combination in all_combinations:
         # Select features
@@ -576,7 +538,7 @@ def test_feature_combinations(
         # Perform Grid Search if enabled
         if use_gridsearch:
             if hyperparameter_grid:
-                print(f"\nPerforming grid search for combination: {combination}...")
+                
                 grid_search, best_params, best_score = grid_search_hyperparameter_tuning(
                     model=model,
                     param_grid=hyperparameter_grid,
@@ -584,7 +546,7 @@ def test_feature_combinations(
                     y_train=y_train
                 )
                 model_params = best_params
-                print(f"Grid search complete. Best parameters: {best_params}, Best AUC: {best_score:.4f}")
+                
             else:
                 raise ValueError("Grid search enabled, but no hyperparameter grid provided.")
         elif not model_params:
@@ -634,28 +596,12 @@ def test_feature_combinations(
             'overfitting_gap': overfitting_gap
         })
 
-        if verbose:
-            print(f"Combination: {combination}, "
-                  f"AUC: {f'{avg_auc:.4f}' if avg_auc is not None else 'N/A'}, "
-                  f"Train Acc: {avg_train_accuracy:.4f}, "
-                  f"Val Acc: {avg_val_accuracy:.4f}, "
-                  f"Combined Score: {combined_score:.4f}, "
-                  f"Overfitting: {overfitting_status}")
+        
 
     # Sort results by combined score (higher is better)
     sorted_results = sorted(results, key=lambda x: x['combined_score'], reverse=True)
 
-    # Display top-k feature combinations
-    print(f"\n📊 Top {top_k_results} Results (sorted by Combined Score):")
-    for i, res in enumerate(sorted_results[:top_k_results], start=1):
-        print(f"  {i}. Combination: {res['combination']}, "
-              f"Combined Score: {res['combined_score']:.4f}, "
-              f"Val Acc: {res['average_val_accuracy']:.4f}, "
-              f"Train Acc: {res['average_train_accuracy']:.4f}, "
-              f"AUC: {f'{res['average_auc']:.4f}' if res['average_auc'] is not None else 'N/A'}, "
-              f"Train-Test Gap: {res['overfitting_gap']:.4f}, "
-              f"Overfitting Status: {res['overfitting_status']}")
-
+ 
     return sorted_results
 
 
@@ -677,8 +623,7 @@ def evaluate_kmeans_feature_groups(
     # Loop through each feature group and PCA option
     for group_name, feature_selection in feature_groups_selection.items():
         for apply_pca in apply_pca_options:  
-            if verbose:
-                print(f"\n🔄 Testing Feature Group: {group_name} with PCA={'Yes' if apply_pca else 'No'} and Normalize={'Yes' if normalize else 'No'}")
+            
             
             # Load and split features
             selected_features, X_train, X_test, y_train, y_test, selected_features_names = load_and_split_features(
@@ -713,8 +658,7 @@ def evaluate_kmeans_feature_groups(
             purity_numerator = 0
             total_samples = len(y_full)
 
-            if verbose:
-                print("\n📊 Cluster Statistics:")
+            
             for cluster in np.unique(cluster_labels):
                 assigned_class = mode(y_full[cluster_labels == cluster], keepdims=True).mode[0]
                 total_samples_in_cluster = np.sum(cluster_labels == cluster)
@@ -724,17 +668,13 @@ def evaluate_kmeans_feature_groups(
                 weighted_accuracy_sum += (majority_class_count / total_samples)
                 purity_numerator += majority_class_count
 
-                if verbose:
-                    print(f"Cluster {cluster} (Majority Class: {assigned_class}) → {percentage:.2f}% of samples belong to class {assigned_class}")
+                
 
             # Compute overall performance metrics
             mean_majority_percentage = np.mean(list(percentage_majority_class.values()))
             purity_score = purity_numerator / total_samples
 
-            if verbose:
-                print(f"\nMean Majority Class Percentage: {mean_majority_percentage:.2f}%")
-                print(f"Weighted Accuracy: {weighted_accuracy_sum:.4f}")
-                print(f"Purity Score: {purity_score:.4f}")
+            
 
             # Store results
             results_summary.append({
@@ -756,12 +696,11 @@ def evaluate_kmeans_feature_groups(
     # Determine filename based on KMeans initialization
     filename = f"features/feature_group_results_{'kmeanspp' if use_kmeans_pp else 'kmeans'}.csv"
 
-    print("\n📊 Summary of Results:")
-    print(results_df)
+    
 
     # Save results to CSV
     results_df.to_csv(filename, index=False)
-    print(f"\n✅ Results saved to {filename}")
+    
 
     return results_df
 
@@ -782,15 +721,14 @@ def run_classifier_on_feature_groups(
     results_summary = []
 
     for group_name, feature_selection in feature_groups_selection.items():
-        print(f"\n🔄 Running {classifier.__class__.__name__} on Feature Group: {group_name}")
-        print(f"Selected features in this group: {[feat for feat, include in feature_selection.items() if include]}")
+        
 
         # Load and preprocess selected features
         selected_features, X_train, X_test, y_train, y_test, selected_features_names = load_and_split_features(
             loaded_data, feature_selection
         )
 
-        print(f"Combined features shape: {selected_features.shape}")
+        
 
         # Extract preprocessing parameters
         preprocess_params = kfold_params['preprocess_params']
@@ -822,7 +760,7 @@ def run_classifier_on_feature_groups(
         auc = classifier_results.get('avg_auc', 'N/A')
 
         if train_acc is None or test_acc is None:
-            print(f"⚠️ Warning: Train/Test accuracy not found for feature group {group_name}.")
+            
             continue
 
         # Store results
@@ -841,13 +779,12 @@ def run_classifier_on_feature_groups(
 
     # Convert results to a DataFrame
     results_df = pd.DataFrame(results_summary)
-    print("\n📊 Classifier Results Summary:")
-    print(results_df)
+    
 
     # Save results to CSV
     filename = f"features/{classifier.__class__.__name__}_feature_group_results.csv"
     results_df.to_csv(filename, index=False)
-    print(f"✅ Results saved to {filename}")
+    
 
     return results_df
 
@@ -861,5 +798,3 @@ def print_feature_groups_with_totals(groups, loaded_data):
         total_components = sum(
             loaded_data[feature].shape[1] for feature, included in features_dict.items() if included
         )       
-        print(f"\n🔍 Feature Group: {group_name} | Total Features: {total_components} components")
-        print(f"Selected Features: {', '.join(selected_features) if selected_features else 'None selected'}")
