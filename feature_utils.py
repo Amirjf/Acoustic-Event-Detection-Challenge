@@ -52,7 +52,7 @@ def extract_spectral_contrast(sound_data, sample_rate, n_fft=2048, hop_length=51
     contrast_std = np.std(contrast, axis=1)  # Compute standard deviation for each band
     return np.concatenate([contrast_mean, contrast_std])  # Return concatenated mean & std values
 
-def extract_spectral_contrast(sound_data, sample_rate, n_fft=2048, hop_length=512,n_bands=7,fmin= None):
+def extract_spectral_contrast(sound_data, sample_rate, n_fft=2048, hop_length=512,n_bands=7,fmin= 100):
     """ Extracts the spectral contrast feature (Mean & Std for each band) """
     sound_data_float = sound_data.astype(np.float32)
     contrast = librosa.feature.spectral_contrast(y=sound_data_float, sr=sample_rate, n_fft=n_fft, hop_length=hop_length,n_bands=n_bands,fmin=fmin)
@@ -168,7 +168,6 @@ def compute_features_for_wave_list(wave_list_data):
     zcr_list = []
     envelope_list = []
     hnr_list = []
-
 
     for category, filename, sample_rate, sound_data in wave_list_data:
         # Extract class number from filename (assumed format: classID-.wav)

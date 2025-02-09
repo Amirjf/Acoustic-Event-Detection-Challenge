@@ -1,6 +1,6 @@
 from sklearn.svm import SVC
 from fastapi import FastAPI
-from feature_utils import compute_combined_features_for_wave_list, compute_features_for_wave_data, compute_features_for_wave_list, load_and_split_features, preprocess_features
+from feature_utils import  compute_features_for_wave, compute_features_for_wave_data, compute_features_for_wave_list, load_and_split_features, preprocess_features
 from model_utils import save_model
 import numpy as np
 import librosa
@@ -13,9 +13,12 @@ app = FastAPI()
 loaded_data = np.load("features/extracted_features_multiple_test.npz")
 
 feature_selection = {
-'hist': False,
-'spectral': True,
 'mfcc': True,
+'delta_mfcc': True,
+'hist': True,
+'spectral_centroid': True,
+'spectral_contrast': True,
+'pitch_features': True,
 'zcr': True,
 'envelope': True,
 'hnr': True
@@ -41,30 +44,32 @@ save_model(svm, "svm_model_new_2")
 
 model_new = joblib.load("models/svm_model_new_2.joblib")
 
-   
+
 @app.get("/predict")
 def predict_audio():
     try:
-        audio_path = "temp/19.wav"
+        audio_path = "dog6.wav"
         sound_data, sample_rate = librosa.load(audio_path)
 
         # Extract features
-        mfcc_list, zcr_list, envelope_list, hnr_list, spectral_list, hist_list = compute_features_for_wave_data(sound_data, sample_rate)
+        mfcc_mean, delta_mfcc_mean, hist_features, spectral_centroid, spectral_contrast, pitch_features, zcr_features, envelope_features, hnr_features = compute_features_for_wave(sound_data, sample_rate)
 
         # Combine features
-        combined_features = np.hstack([ mfcc_list, zcr_list, envelope_list, hnr_list, spectral_list])
+        combined_features = np.hstack([mfcc_mean, delta_mfcc_mean, hist_features, spectral_centroid, spectral_contrast, pitch_features, zcr_features, envelope_features, hnr_features])
 
+        # Reshape combined_features to 2D array
+        combined_features = combined_features.reshape(1, -1)
 
         # Load and apply scaler
         scaler = joblib.load("models/scaler.joblib")
         combined_features = scaler.transform(combined_features)
 
-        print(combined_features.shape)
 
         # Predict class
         prediction = model_new.predict(combined_features)
+        print(prediction)
 
-        return {"class": int(prediction)}
+        return {"class": "ok"}
     
     except Exception as e:
         return {"error": str(e)}
