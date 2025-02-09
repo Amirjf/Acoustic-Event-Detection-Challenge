@@ -19,7 +19,7 @@ temp
 .venv
 
 *.hdf5
-*.npz
+
 .ipynb_checkpoints/data_utils-checkpoint.py
 .ipynb_checkpoints/feature_utils-checkpoint.py
 .ipynb_checkpoints/main-checkpoint.ipynb
