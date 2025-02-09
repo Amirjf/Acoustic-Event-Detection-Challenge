@@ -13,6 +13,20 @@ from pathlib import Path
 app = FastAPI()
 
 
+CATEGORY_MAPPER = {
+    0: "dog",
+    36: "vacuum_cleaner",
+    19: "thunderstorm",
+    17: "pouring_water",
+    37: "clock_alarm",
+    40: "helicopter",
+    28: "snoring",
+    21: "sneezing",
+    1: "rooster",
+    42: "siren",
+}
+
+
 MODEL_DIR = Path("models")
 MODEL_DIR.mkdir(exist_ok=True)
 
@@ -108,8 +122,12 @@ def predict_audio(model_name: str, file: UploadFile = File(...)):
         # Load model and predict
         model = joblib.load(model_path)
         prediction = model.predict(combined_features)
+        predicted_target = prediction.tolist()[0]
 
-        return {"class": prediction.tolist()}
+        # Map the predicted target to its category name
+        category_name = CATEGORY_MAPPER.get(predicted_target, "Unknown")
+
+        return {"predicted_class": category_name}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
