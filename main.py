@@ -2,6 +2,7 @@ import shutil
 import librosa
 from sklearn.svm import SVC
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from feature_utils import compute_features_for_wave, load_and_split_features, preprocess_features
 from model_utils import save_model
@@ -9,8 +10,17 @@ import numpy as np
 import joblib
 from pathlib import Path
 
-
 app = FastAPI()
+
+
+origins = ['*']
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 CATEGORY_MAPPER = {
@@ -132,6 +142,8 @@ def predict_audio(model_name: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+@app.get("/models")
+def get_models():
+    models = [f.stem for f in MODEL_DIR.glob("*.joblib")]
+    return models

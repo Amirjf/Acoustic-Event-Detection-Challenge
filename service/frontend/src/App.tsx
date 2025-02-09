@@ -1,5 +1,11 @@
+import AudioClassifier from './components/AudioClassifier';
+
 function App() {
-  return <></>;
+  return (
+    <>
+      <AudioClassifier />
+    </>
+  );
 }
 
 export default App;
