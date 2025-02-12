@@ -1,9 +1,16 @@
-import base64
-import io
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report, confusion_matrix
+import json
 import shutil
+from enum import Enum
+from pydantic import BaseModel
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 import librosa
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,6 +38,10 @@ feature_selection = {
     'envelope':True,
     'hnr':True
 }
+feee = {
+    'mfcc': True,
+    'delta_mfcc': True,
+      'histogram': True, 'spectral_centroid': True, 'spectral_contrast': True, 'pitch': True, 'zcr': True, 'envelope': True, 'hnr': True}
 
 
 app.add_middleware(
@@ -64,14 +75,6 @@ FEATURES_FILE = "features/extracted_features_multiple_test.npz"
 loaded_data = np.load(FEATURES_FILE)
 
 
-class TrainingRequest(BaseModel):
-    feature_selection: dict
-    model_name: str
-    normalize: bool = True
-    apply_pca: bool = False
-    n_pca_components: float = 0.9
-    C: float = 1.0
-    gamma: float = 0.01
 
 class PredictRequest(BaseModel):
     model_name: str
@@ -120,38 +123,85 @@ def visualize_features():
     return {"data": data_points, "labels": unique_labels}
 
 
+
+class ModelType(str, Enum):
+    SVM = "svm"
+    RANDOM_FOREST = "random_forest"
+    KNN = "knn"
+
+class TrainingRequest(BaseModel):
+    feature_selection: dict
+    model_name: str
+    model_type: ModelType
+    normalize: bool = True
+    apply_pca: bool = False
+    n_pca_components: float = 0.9
+    # Model specific parameters
+    C: float = 1.0  # for SVM
+    gamma: float = 0.01  # for SVM
+    n_estimators: int = 100  # for Random Forest
+    max_depth: int = 10  # for Random Forest
+    n_neighbors: int = 3  # for KNN
+
 @app.post("/train")
 def train_model(request: TrainingRequest):
+
+    print(request.feature_selection)
+    metrics = {}
+    
     try:
         # Load and split data based on feature selection
         selected_features, X_train, X_test, y_train, y_test, selected_features_names = load_and_split_features(
-            loaded_data, feature_selection 
+            loaded_data, feature_selection=request.feature_selection  
         )
-
+        
         # Preprocess features
         X_train, X_test = preprocess_features(
             X_train, X_test, normalize=request.normalize,
             apply_pca=request.apply_pca, n_pca_components=request.n_pca_components, verbose=True
         )
 
-        # Train SVM model
+        # Initialize the requested model
+        if request.model_type == ModelType.SVM:
+            model = SVC(kernel='rbf', C=request.C, gamma=request.gamma, 
+                       probability=True, random_state=42)
+        elif request.model_type == ModelType.RANDOM_FOREST:
+            model = RandomForestClassifier(n_estimators=request.n_estimators, 
+                                         max_depth=request.max_depth, 
+                                         min_samples_split=10, random_state=42)
+        else:  # KNN
+            model = KNeighborsClassifier(n_neighbors=request.n_neighbors)
 
-        svm = SVC(kernel='rbf', C=request.C, gamma=request.gamma, probability=True, random_state=42)
+        # Train the model
+        model.fit(X_train, y_train)
 
-        svm.fit(X_train, y_train)
+        # Make predictions
+        y_pred = model.predict(X_test)
+        y_prob = model.predict_proba(X_test)
+        y_train_pred = model.predict(X_train)
 
+        # Calculate metrics
+        metrics[request.model_type] = {
+            'test_accuracy': float(accuracy_score(y_test, y_pred)),
+            'test_auc': float(roc_auc_score(y_test, y_prob, multi_class='ovr')),
+            'train_accuracy': float(accuracy_score(y_train, y_train_pred)),
+            'classification_report': classification_report(y_test, y_pred, output_dict=True)
+        }
 
-#         knn = KNeighborsClassifier(n_neighbors=7, weights='uniform', metric='euclidean')
-#         knn.fit(X_train, y_train)
+        # Save metrics
+        with open(MODEL_DIR / f"{request.model_name}_metrics.json", 'w') as f:
+            json.dump(metrics, f)
 
         # Save trained model
-        save_model(svm, request.model_name, directory=str(MODEL_DIR))
+        save_model(model, request.model_name, directory=str(MODEL_DIR))
 
-        return {"message": f"Model {request.model_name} trained and saved successfully!"}
+        return {
+            "message": f"Successfully trained and saved {request.model_type} model",
+            "metrics": metrics
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @app.post("/predict")
@@ -207,6 +257,19 @@ def predict_audio(model_name: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/model_metrics/{model_name}")
+def get_model_metrics(model_name: str):
+    try:
+        metrics_path = MODEL_DIR / f"{model_name}_metrics.json"
+        if not metrics_path.exists():
+            raise HTTPException(status_code=404, detail=f"Metrics for model '{model_name}' not found")
+            
+        with open(metrics_path, 'r') as f:
+            metrics = json.load(f)
+        return metrics
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
 @app.get("/models")
 def get_models():
     models = [f.stem for f in MODEL_DIR.glob("*.joblib")]
