@@ -1,10 +1,14 @@
+import base64
+import io
 import shutil
 import librosa
+from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA
 from sklearn.svm import SVC
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from feature_utils import compute_features_for_wave, load_and_split_features, preprocess_features
+from feature_utils import combine_features_with_flags, compute_features_for_wave, load_and_split_features, preprocess_features
 from model_utils import save_model
 import numpy as np
 import joblib
@@ -14,6 +18,20 @@ app = FastAPI()
 
 
 origins = ['*']
+
+
+feature_selection = {
+     'mfcc': True,
+    'delta_mfcc': True,
+    'hist':True,
+    'spectral_centroid':True,
+    'spectral_contrast':True,
+    'pitch_features':True,
+    'zcr':True,
+    'envelope':True,
+    'hnr':True
+}
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,13 +79,53 @@ class PredictRequest(BaseModel):
 
 loaded_data = np.load("features/extracted_features_multiple_test.npz")
 
+keys_list = loaded_data['keys'].tolist()  # Convert to list
+mfcc_features = loaded_data['mfcc']
+delta_mfcc_features = loaded_data['delta_mfcc']
+hist_features = loaded_data['hist']
+spectral_centroid_features = loaded_data['spectral_centroid']
+spectral_contrast_features = loaded_data['spectral_contrast']
+pitch_features = loaded_data['pitch_features']
+zcr_features = loaded_data['zcr']
+envelope_features = loaded_data['envelope']
+hnr_features = loaded_data['hnr']
+
+@app.get("/visualize")
+def visualize_features():
+    # Flatten and concatenate features
+    feature_list = [
+        mfcc_features, delta_mfcc_features, hist_features, spectral_centroid_features,
+        spectral_contrast_features, pitch_features, zcr_features, envelope_features, hnr_features
+    ]
+    
+    # Ensure all features are 2D (samples, feature_dim)
+    feature_list = [f.reshape(f.shape[0], -1) for f in feature_list]
+
+    # Concatenate features along the second axis
+    feature_matrix = np.hstack(feature_list)  # Shape: (num_samples, total_feature_dim)
+
+    # Apply PCA to reduce to 2D for visualization
+    pca = PCA(n_components=2)
+    reduced_features = pca.fit_transform(feature_matrix)  # Shape: (num_samples, 2)
+
+    # Get unique labels
+    unique_labels = list(set(keys_list))
+
+    # Convert to JSON format
+    data_points = [
+        {"x": float(reduced_features[i, 0]), "y": float(reduced_features[i, 1]), "label": keys_list[i]}
+        for i in range(len(keys_list))
+    ]
+
+    return {"data": data_points, "labels": unique_labels}
+
 
 @app.post("/train")
 def train_model(request: TrainingRequest):
     try:
         # Load and split data based on feature selection
         selected_features, X_train, X_test, y_train, y_test, selected_features_names = load_and_split_features(
-            loaded_data, request.feature_selection
+            loaded_data, feature_selection 
         )
 
         # Preprocess features
@@ -77,8 +135,14 @@ def train_model(request: TrainingRequest):
         )
 
         # Train SVM model
+
         svm = SVC(kernel='rbf', C=request.C, gamma=request.gamma, probability=True, random_state=42)
+
         svm.fit(X_train, y_train)
+
+
+#         knn = KNeighborsClassifier(n_neighbors=7, weights='uniform', metric='euclidean')
+#         knn.fit(X_train, y_train)
 
         # Save trained model
         save_model(svm, request.model_name, directory=str(MODEL_DIR))

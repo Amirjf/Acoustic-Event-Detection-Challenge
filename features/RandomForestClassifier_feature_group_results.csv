@@ -1,8 +1,0 @@
-Feature Group,Classifier,Normalize,Apply PCA,PCA Components,AUC,Train Accuracy,Test Accuracy,Overfitting Gap,Overfitting Status
-group_1_temporal,RandomForestClassifier,False,False,0.9,0.9352083333333333,0.99875,0.6325,0.3662500000000001,⚠️ Overfitting Risk
-group_2_harmonic,RandomForestClassifier,False,False,0.9,0.9796006944444444,1.0,0.8324999999999999,0.1675000000000001,⚠️ Overfitting Risk
-group_3_spectral_brightness,RandomForestClassifier,False,False,0.9,0.9864583333333334,0.999375,0.825,0.17437500000000006,⚠️ Overfitting Risk
-group_4_noise,RandomForestClassifier,False,False,0.9,0.9733680555555555,1.0,0.7575,0.24250000000000005,⚠️ Overfitting Risk
-group_5_general_1,RandomForestClassifier,False,False,0.9,0.9771180555555556,0.999375,0.8,0.19937499999999997,⚠️ Overfitting Risk
-group_6_general_2,RandomForestClassifier,False,False,0.9,0.9855555555555554,0.99875,0.8474999999999999,0.1512500000000001,⚠️ Overfitting Risk
-group_7_general_composite,RandomForestClassifier,False,False,0.9,0.9890277777777777,1.0,0.885,0.11499999999999999,⚠️ Overfitting Risk

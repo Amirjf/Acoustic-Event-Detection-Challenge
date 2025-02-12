@@ -1,8 +1,0 @@
-Feature Group,Classifier,Normalize,Apply PCA,PCA Components,AUC,Train Accuracy,Test Accuracy,Overfitting Gap,Overfitting Status
-group_1_temporal,KNeighborsClassifier,True,False,0.8,0.8411631944444444,0.5918749999999999,0.4375,0.15437499999999993,⚠️ Overfitting Risk
-group_2_harmonic,KNeighborsClassifier,True,False,0.8,0.9435069444444444,0.7806249999999999,0.7124999999999999,0.06812499999999999,✅ No Overfitting
-group_3_spectral_brightness,KNeighborsClassifier,True,False,0.8,0.9617361111111112,0.820625,0.7575000000000001,0.06312499999999999,✅ No Overfitting
-group_4_noise,KNeighborsClassifier,True,False,0.8,0.9132118055555555,0.6968750000000001,0.595,0.10187500000000016,✅ No Overfitting
-group_5_general_1,KNeighborsClassifier,True,False,0.8,0.9219270833333335,0.7262500000000001,0.6275,0.09875000000000012,✅ No Overfitting
-group_6_general_2,KNeighborsClassifier,True,False,0.8,0.9632291666666667,0.8237500000000001,0.775,0.04875000000000007,✅ No Overfitting
-group_7_general_composite,KNeighborsClassifier,True,False,0.8,0.9628298611111111,0.825,0.7725,0.05249999999999999,✅ No Overfitting
